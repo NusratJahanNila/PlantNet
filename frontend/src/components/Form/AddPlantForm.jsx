@@ -1,7 +1,101 @@
+import { useForm } from "react-hook-form"
+import { imageUpload } from "../../utils";
+import useAuth from '../../hooks/useAuth'
+import axios from "axios";
+import { useMutation } from "@tanstack/react-query";
+import LoadingSpinner from "../Shared/LoadingSpinner";
+import ErrorPage from "../../pages/ErrorPage";
+import toast from "react-hot-toast";
+import { TbFidgetSpinner } from 'react-icons/tb'
+
 const AddPlantForm = () => {
+  // Seller info from user
+  const { user } = useAuth()
+
+  // useMutation hook --> Post method
+  const {isPending,isError, mutateAsync,reset:mutationReset}=useMutation({
+    mutationFn: async(payload)=>{
+      // post operation
+      await axios.post(`${import.meta.env.VITE_API_URL}/plants`, payload)
+    },
+
+    onSuccess: data=>{
+      console.log(data);
+      // toast
+      toast.success("Plant added successfully")
+
+      mutationReset();
+      // Query Key
+    },
+
+    onError: (error)=>{
+      console.log(error)
+    },
+    
+    //execute before mutation function 
+    onMutate: payload=>{
+      console.log("I will post this data--> ",payload)
+    },
+    // onSettled:(data,err)=>{
+    //    console.log(data);
+    //    console.log(err);
+    // },
+    retry:3
+  })
+
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
+  } = useForm();
+
+  // Form submit
+  const onSubmit = async (data) => {
+    // data
+    const { name, price, quantity, description, image, category } = data;
+    const imageFile = image[0];
+
+
+    // add plant data to db
+    try {
+      const imageURL = await imageUpload(imageFile);
+
+      // Plants data
+      const plantData = {
+        name,
+        image: imageURL,
+        price: Number(price),
+        quantity: Number(quantity),
+        category,
+        description,
+        // Seller
+        seller: {
+          image: user?.photoURL,
+          name: user?.displayName,
+          email: user?.email
+        }
+      };
+
+      // call muted function
+      await mutateAsync(plantData)
+
+      // reset form
+      reset();
+    } 
+    catch (error) {
+      console.log(error)
+    }
+  }
+
+  // loading
+  if(isPending) return <LoadingSpinner></LoadingSpinner>
+  // error
+  if(isError) return <ErrorPage></ErrorPage>
   return (
     <div className='w-full min-h-[calc(100vh-40px)] flex flex-col justify-center items-center text-gray-800 rounded-xl bg-gray-50'>
-      <form>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-10'>
           <div className='space-y-6'>
             {/* Name */}
@@ -11,12 +105,18 @@ const AddPlantForm = () => {
               </label>
               <input
                 className='w-full px-4 py-3 text-gray-800 border border-lime-300 focus:outline-lime-500 rounded-md bg-white'
-                name='name'
+                {...register('name', {
+                  required: 'Name is required',
+                  maxLength: {
+                    value: 20,
+                    message: "Name must be within 20 character"
+                  }
+                })}
                 id='name'
                 type='text'
                 placeholder='Plant Name'
-                required
               />
+              {errors.name && <p className='text-red-600 text-sm'>{errors.name.message}</p>}
             </div>
             {/* Category */}
             <div className='space-y-1 text-sm'>
@@ -24,15 +124,17 @@ const AddPlantForm = () => {
                 Category
               </label>
               <select
-                required
                 className='w-full px-4 py-3 border-lime-300 focus:outline-lime-500 rounded-md bg-white'
-                name='category'
+                {...register('category', {
+                  required: 'Category is required'
+                })}
               >
                 <option value='Indoor'>Indoor</option>
                 <option value='Outdoor'>Outdoor</option>
                 <option value='Succulent'>Succulent</option>
                 <option value='Flowering'>Flowering</option>
               </select>
+              {errors.category && <p className='text-red-600 text-sm'>{errors.category.message}</p>}
             </div>
             {/* Description */}
             <div className='space-y-1 text-sm'>
@@ -45,7 +147,11 @@ const AddPlantForm = () => {
                 placeholder='Write plant description here...'
                 className='block rounded-md focus:lime-300 w-full h-32 px-4 py-3 text-gray-800  border border-lime-300 bg-white focus:outline-lime-500 '
                 name='description'
+                {...register('description', {
+                  required: 'Description is required'
+                })}
               ></textarea>
+              {errors.description && <p className='text-red-600 text-sm'>{errors.description.message}</p>}
             </div>
           </div>
           <div className='space-y-6 flex flex-col'>
@@ -58,12 +164,19 @@ const AddPlantForm = () => {
                 </label>
                 <input
                   className='w-full px-4 py-3 text-gray-800 border border-lime-300 focus:outline-lime-500 rounded-md bg-white'
-                  name='price'
                   id='price'
                   type='number'
                   placeholder='Price per unit'
-                  required
+
+                  {...register('price', {
+                    required: 'Price is required',
+                    min: {
+                      value: 0,
+                      message: "Price must be positive"
+                    }
+                  })}
                 />
+                {errors.price && <p className='text-red-600 text-sm'>{errors.price.message}</p>}
               </div>
 
               {/* Quantity */}
@@ -77,8 +190,15 @@ const AddPlantForm = () => {
                   id='quantity'
                   type='number'
                   placeholder='Available quantity'
-                  required
+                  {...register('quantity', {
+                    required: 'Quantity is required',
+                    min: {
+                      value: 0,
+                      message: "Quantity must be positive"
+                    }
+                  })}
                 />
+                {errors.quantity && <p className='text-red-600 text-sm'>{errors.quantity.message}</p>}
               </div>
             </div>
             {/* Image */}
@@ -93,7 +213,12 @@ const AddPlantForm = () => {
                       id='image'
                       accept='image/*'
                       hidden
+                      {...register('image', {
+                        required: 'Image is required'
+                      })}
                     />
+                    {errors.image && <p className='text-red-600 text-sm'>{errors.image.message}</p>}
+
                     <div className='bg-lime-500 text-white border border-gray-300 rounded font-semibold cursor-pointer p-1 px-3 hover:bg-lime-500'>
                       Upload
                     </div>
@@ -107,7 +232,12 @@ const AddPlantForm = () => {
               type='submit'
               className='w-full cursor-pointer p-3 mt-5 text-center font-medium text-white transition duration-200 rounded shadow-md bg-lime-500 '
             >
-              Save & Continue
+              
+              {isPending ? (
+                <TbFidgetSpinner className='animate-spin m-auto' />
+              ) : (
+                'Save & Continue'
+              )}
             </button>
           </div>
         </div>

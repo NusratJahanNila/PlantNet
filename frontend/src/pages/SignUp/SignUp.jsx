@@ -3,6 +3,8 @@ import { FcGoogle } from 'react-icons/fc'
 import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-hot-toast'
 import { TbFidgetSpinner } from 'react-icons/tb'
+import { useForm } from "react-hook-form"
+import { imageUpload } from '../../utils'
 
 const SignUp = () => {
   const { createUser, updateUserProfile, signInWithGoogle, loading } = useAuth()
@@ -10,22 +12,38 @@ const SignUp = () => {
   const location = useLocation()
   const from = location.state || '/'
 
-  // form submit handler
-  const handleSubmit = async event => {
-    event.preventDefault()
-    const form = event.target
-    const name = form.name.value
-    const email = form.email.value
-    const password = form.password.value
+  // react hook form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
+  // Form submit
+
+  const onSubmit = async (data) => {
+    const { name, image, email, password } = data;
+
+    // image file
+    const imageFile = image[0];
+    // const formData = new FormData();
+    // formData.append('image', imageFile);
+
+
 
     try {
-      //2. User Registration
+      //1. User Registration
       const result = await createUser(email, password)
+
+      //2. generate img url from file
+      // const data = await axios.post(`https://api.imgbb.com/1/upload?&key=${import.meta.env.VITE_IMGBB_API_KEY}`, formData)
+      // console.log("Data from Image: ",data.data.data.url)
+      const imageURL=await imageUpload(imageFile);
 
       //3. Save username & profile photo
       await updateUserProfile(
         name,
-        'https://lh3.googleusercontent.com/a/ACg8ocKUMU3XIX-JSUB80Gj_bYIWfYudpibgdwZE1xqmAGxHASgdvCZZ=s96-c'
+        imageURL
       )
       console.log(result)
 
@@ -58,7 +76,7 @@ const SignUp = () => {
           <p className='text-sm text-gray-400'>Welcome to PlantNet</p>
         </div>
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit)}
           noValidate=''
           action=''
           className='space-y-6 ng-untouched ng-pristine ng-valid'
@@ -70,12 +88,19 @@ const SignUp = () => {
               </label>
               <input
                 type='text'
-                name='name'
                 id='name'
                 placeholder='Enter Your Name Here'
                 className='w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-lime-500 bg-gray-200 text-gray-900'
                 data-temp-mail-org='0'
+                {...register('name', {
+                  required: 'Name is required',
+                  maxLength: {
+                    value: 20,
+                    message: "Name must be within 20 character"
+                  }
+                })}
               />
+              {errors.name && <p className='text-red-600 text-sm'>{errors.name.message}</p>}
             </div>
             {/* Image */}
             <div>
@@ -86,7 +111,7 @@ const SignUp = () => {
                 Profile Image
               </label>
               <input
-                name='image'
+                {...register('image')}
                 type='file'
                 id='image'
                 accept='image/*'
@@ -104,20 +129,29 @@ const SignUp = () => {
                 PNG, JPG or JPEG (max 2MB)
               </p>
             </div>
+            {/* Email */}
             <div>
               <label htmlFor='email' className='block mb-2 text-sm'>
                 Email address
               </label>
               <input
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    message: 'Please enter a valid email'
+                  }
+
+                })}
                 type='email'
-                name='email'
                 id='email'
-                required
                 placeholder='Enter Your Email Here'
                 className='w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-lime-500 bg-gray-200 text-gray-900'
                 data-temp-mail-org='0'
               />
+              {errors.email && <p className='text-red-600 text-sm'>{errors.email.message}</p>}
             </div>
+            {/* Password */}
             <div>
               <div className='flex justify-between'>
                 <label htmlFor='password' className='text-sm mb-2'>
@@ -125,14 +159,20 @@ const SignUp = () => {
                 </label>
               </div>
               <input
+                {...register('password', {
+                  required: 'Password is required',
+                  minLength: {
+                    value: 6,
+                    message: 'Password must be at least 6 character'
+                  }
+                })}
                 type='password'
-                name='password'
                 autoComplete='new-password'
                 id='password'
-                required
                 placeholder='*******'
                 className='w-full px-3 py-2 border rounded-md border-gray-300 focus:outline-lime-500 bg-gray-200 text-gray-900'
               />
+              {errors.password && <p className='text-red-600 text-sm'>{errors.password.message}</p>}
             </div>
           </div>
 
