@@ -139,6 +139,7 @@ async function run() {
           status: 'pending',
           seller: plant?.seller,
           name: plant?.name,
+          image:plant?.image,
           category: plant?.category,
           quantity: 1,
           // price will be from session
@@ -163,6 +164,37 @@ async function run() {
         transactionId: session.payment_intent,
         orderId: result._id,
       })
+    })
+
+    // ==========================================================================================
+    // My-orders: get all orders of a customer by email
+    app.get('/my-orders/:email',async(req,res)=>{
+      const email=req.params.email;
+      // customer:"user@a.com"
+      const query={customer: email};
+
+      const result=await ordersCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    // Manage-orders: get all orders that a seller gets- by email
+    app.get('/manage-orders/:email',async(req,res)=>{
+      const email=req.params.email;
+      // seller:{email:user@b.com}"
+      const query={'seller.email': email};
+
+      const result=await ordersCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    // My-inventory: get all plants added a seller gets- by email
+    app.get('/my-inventory/:email',async(req,res)=>{
+      const email=req.params.email;
+      // seller:{email:user@b.com}"
+      const query={'seller.email': email};
+
+      const result=await plantsCollection.find(query).toArray();
+      res.send(result);
     })
 
     // Send a ping to confirm a successful connection
