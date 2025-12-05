@@ -1,6 +1,36 @@
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
+import useAuth from '../../hooks/useAuth'
+import axios from 'axios'
+const PurchaseModal = ({ closeModal, isOpen, plant }) => {
+  // user
+  const { user } = useAuth()
+  const { _id, name, category, price, description, image, seller } = plant
 
-const PurchaseModal = ({ closeModal, isOpen }) => {
+  const handlePayment = async () => {
+    // payment data to show on stripe page
+    const paymentInfo = {
+      plantId: _id,
+      name,
+      category,
+      price,
+      quantity: 1,
+      description,
+      image,
+      seller,
+      customer: {
+        name: user?.displayName,
+        email: user?.email,
+        image: user?.photoURL,
+      }
+    }
+
+    // post method:
+    const result = await axios.post(`${import.meta.env.VITE_API_URL}/create-checkout-session`, paymentInfo)
+    console.log("payment result-->",result.data.url )  
+    //go to stripe page
+    window.location.href=result.data.url
+  }
+
   // Total Price Calculation
 
   return (
@@ -23,23 +53,24 @@ const PurchaseModal = ({ closeModal, isOpen }) => {
               Review Info Before Purchase
             </DialogTitle>
             <div className='mt-2'>
-              <p className='text-sm text-gray-500'>Plant: Money Plant</p>
+              <p className='text-sm text-gray-500'>Plant: {name}</p>
             </div>
             <div className='mt-2'>
-              <p className='text-sm text-gray-500'>Category: Indoor</p>
+              <p className='text-sm text-gray-500'>Category: {category}</p>
             </div>
             <div className='mt-2'>
-              <p className='text-sm text-gray-500'>Customer: PH</p>
+              <p className='text-sm text-gray-500'>Customer: {user?.displayName}</p>
             </div>
 
             <div className='mt-2'>
-              <p className='text-sm text-gray-500'>Price: $ 120</p>
+              <p className='text-sm text-gray-500'>Price: $ {price}</p>
             </div>
-            <div className='mt-2'>
-              <p className='text-sm text-gray-500'>Available Quantity: 5</p>
-            </div>
+            {/* <div className='mt-2'>
+              <p className='text-sm text-gray-500'>Available Quantity: {quantity}</p>
+            </div> */}
             <div className='flex mt-2 justify-around'>
               <button
+                onClick={handlePayment}
                 type='button'
                 className='cursor-pointer inline-flex justify-center rounded-md border border-transparent bg-green-100 px-4 py-2 text-sm font-medium text-green-900 hover:bg-green-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2'
               >

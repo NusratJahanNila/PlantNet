@@ -5,6 +5,7 @@ import { router } from './routes/Routes.jsx'
 import { RouterProvider } from 'react-router'
 import AuthProvider from './providers/AuthProvider.jsx'
 import { Toaster } from 'react-hot-toast'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {
   QueryClient,
   QueryClientProvider
@@ -20,6 +21,7 @@ createRoot(document.getElementById('root')).render(
         <RouterProvider router={router} />
         <Toaster position='top-right' reverseOrder={false} />
       </AuthProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </StrictMode>
 )
