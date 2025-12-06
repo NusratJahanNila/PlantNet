@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import useAuth from '../../../hooks/useAuth'
 import logo from '../../../assets/images/logo-flat.png'
+import useRole from '../../../hooks/useRole';
+import LoadingSpinner from "../../Shared/LoadingSpinner";
+
+
 // Icons
 import { GrLogout } from 'react-icons/gr'
 import { FcSettings } from 'react-icons/fc'
@@ -16,12 +20,15 @@ import CustomerMenu from './Menu/CustomerMenu'
 
 const Sidebar = () => {
   const { logOut } = useAuth()
+  const {role,isRoleLoading}=useRole();
   const [isActive, setActive] = useState(false)
 
   // Sidebar Responsive Handler
   const handleToggle = () => {
     setActive(!isActive)
   }
+
+  if(isRoleLoading) return <LoadingSpinner></LoadingSpinner>
 
   return (
     <>
@@ -71,9 +78,15 @@ const Sidebar = () => {
                 address='/dashboard'
               />
               {/* Role-Based Menu */}
-              <CustomerMenu />
-              <SellerMenu />
-              <AdminMenu />
+              {
+                role==='customer' && <CustomerMenu />
+              }
+              {
+                role==='seller' && <SellerMenu />
+              }
+              {
+                role==='admin' && <AdminMenu />
+              }
             </nav>
           </div>
 

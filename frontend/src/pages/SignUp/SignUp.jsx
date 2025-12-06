@@ -4,7 +4,7 @@ import useAuth from '../../hooks/useAuth'
 import { toast } from 'react-hot-toast'
 import { TbFidgetSpinner } from 'react-icons/tb'
 import { useForm } from "react-hook-form"
-import { imageUpload } from '../../utils'
+import { imageUpload, saveOrUpdateUser } from '../../utils'
 
 const SignUp = () => {
   const { createUser, updateUserProfile, signInWithGoogle, loading } = useAuth()
@@ -32,13 +32,18 @@ const SignUp = () => {
 
 
     try {
-      //1. User Registration
-      const result = await createUser(email, password)
-
-      //2. generate img url from file
+      //1. generate img url from file
       // const data = await axios.post(`https://api.imgbb.com/1/upload?&key=${import.meta.env.VITE_IMGBB_API_KEY}`, formData)
       // console.log("Data from Image: ",data.data.data.url)
       const imageURL=await imageUpload(imageFile);
+
+
+      //2. User Registration
+      const result = await createUser(email, password)
+
+      // save or update user via signup
+      await saveOrUpdateUser({name, email,image:imageURL})
+
 
       //3. Save username & profile photo
       await updateUserProfile(
@@ -59,7 +64,14 @@ const SignUp = () => {
   const handleGoogleSignIn = async () => {
     try {
       //User Registration using google
-      await signInWithGoogle()
+      const result=await signInWithGoogle()
+
+      // save or update user via signup
+      await saveOrUpdateUser({
+        name: result?.user?.displayName, 
+        email:result?.user?.email,
+        image:result?.user?.photoURL
+      })
 
       navigate(from, { replace: true })
       toast.success('Signup Successful')

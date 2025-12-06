@@ -53,6 +53,8 @@ async function run() {
     const db = client.db('plantsDB')
     const plantsCollection = db.collection('plants')
     const ordersCollection = db.collection('orders')
+    const usersCollection = db.collection('users')
+    const sellerRequestsCollection = db.collection('sellerRequests')
 
 
 
@@ -168,8 +170,9 @@ async function run() {
 
     // ==========================================================================================
     // My-orders: get all orders of a customer by email
-    app.get('/my-orders/:email',async(req,res)=>{
-      const email=req.params.email;
+    app.get('/my-orders',verifyJWT,async(req,res)=>{
+      // email from middleware
+      const email=req.tokenEmail;
       // customer:"user@a.com"
       const query={customer: email};
 
@@ -196,6 +199,99 @@ async function run() {
       const result=await plantsCollection.find(query).toArray();
       res.send(result);
     })
+
+
+    // ...........................................................................
+    // Manage-users role: save or update user in db
+    app.post('/user',async(req,res)=>{
+      const userData=req.body;
+      // add some extra info
+      userData.created_at=new Date().toISOString();
+      userData.last_loggedIn=new Date().toISOString();
+      userData.role='customer'
+
+      const query={email:userData?.email};
+
+      //find if the user already exist or not
+      const alreadyExists= await usersCollection.findOne(query);
+      console.log('user already exist--> ', !!alreadyExists)
+      
+      // if exist--> update
+      if(alreadyExists){
+        console.log('updating user info-->')
+        const update= {
+          $set: {
+            last_loggedIn:new Date().toISOString
+          }
+        }
+        const result=await usersCollection.updateOne(query, update)
+
+        return res.send(result)
+      }
+
+      // if user does'nt exist -->save 
+      console.log('saving user info ....')
+      const result=await usersCollection.insertOne(userData);
+      res.send(result);
+    })
+
+    // useRole hook: get a user's role by email
+    app.get('/user/role',verifyJWT, async(req,res)=>{
+      // const email=req.params.email;
+      const result=await usersCollection.findOne({email: req.tokenEmail})
+      res.send({
+        role: result?.role
+      })
+    })
+
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    // become a seller: save seller request:
+    app.post('/become-seller',verifyJWT,async(req,res)=>{
+      const email= req.tokenEmail;
+      // seller already exist ?
+      const alreadyExists= await sellerRequestsCollection.findOne({email});
+      if(alreadyExists){
+        return res.status(409).send({message: "Already requested, please wait!!"})
+      }
+      const result= await sellerRequestsCollection.insertOne({email})
+      res.send(result)
+    })
+
+    // Seller request: get all seller request for admin
+    app.get ('/seller-requests',verifyJWT,async(req,res)=>{
+      const result=await sellerRequestsCollection.find().toArray();
+      res.send(result);
+    })
+
+    // Manage user: get all user's for admin
+    app.get ('/users',verifyJWT,async(req,res)=>{
+      // admin email
+      const adminEmail=req.tokenEmail;
+      // give all user except admin
+      const result=await usersCollection.find({email: {$ne:adminEmail}}).toArray();
+      res.send(result);
+    })
+
+    // SellerRequestsDataRow: update user role by admin
+    app.patch('/update-role',verifyJWT,async(req,res)=>{
+      const {email,role}= req.body;
+      const update={
+        $set:{role}
+      }
+      // update role in the user collection
+      const result= await usersCollection.updateOne({email}, update)
+
+      // delete from seller request collection
+      await sellerRequestsCollection.deleteOne({email})
+
+      res.send(result)
+    })
+
+
+
+
+
+
 
     // Send a ping to confirm a successful connection
     await client.db('admin').command({ ping: 1 })

@@ -1,9 +1,28 @@
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { useState } from 'react'
+import useAxiosSecure from '../../hooks/useAxiosSecure';
+import toast from 'react-hot-toast';
 
-const UpdateUserRoleModal = ({ isOpen, closeModal, role }) => {
-  const [updatedRole, setUpdatedRole] = useState(role)
+const UpdateUserRoleModal = ({ isOpen, closeModal, user, refetch }) => {
+  const [updatedRole, setUpdatedRole] = useState(user?.role)
 
+  const axiosSecure = useAxiosSecure();
+  // become seller
+  const handleRoleUpdate = async () => {
+    try {
+      await axiosSecure.patch('/update-role', {
+        email: user?.email,
+        role: updatedRole
+      })
+      toast.success('Request updated!!')
+      refetch();
+    } catch (error) {
+      console.log(error)
+      toast.error(error?.response?.data?.message)
+    }finally{
+      closeModal()
+    }
+  }
   return (
     <>
       <Dialog
@@ -40,6 +59,7 @@ const UpdateUserRoleModal = ({ isOpen, closeModal, role }) => {
                 </div>
                 <div className='flex mt-2 justify-around'>
                   <button
+                    onClick={handleRoleUpdate}
                     type='button'
                     className='cursor-pointer inline-flex justify-center rounded-md border border-transparent bg-green-100 px-4 py-2 text-sm font-medium text-green-900 hover:bg-green-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2'
                   >

@@ -1,5 +1,20 @@
 import { Dialog, DialogTitle, DialogPanel } from '@headlessui/react'
+import useAxiosSecure from '../../hooks/useAxiosSecure'
+import toast from 'react-hot-toast';
 const BecomeSellerModal = ({ closeModal, isOpen }) => {
+  const axiosSecure=useAxiosSecure();
+  // become seller
+  const handleRequest=async()=>{
+    try {
+      await axiosSecure.post('/become-seller')
+      toast.success('Request send, please wait for admin approval!!')
+    } catch (error) {
+      console.log(error)
+      toast.error(error?.response?.data?.message)
+    }finally{
+      closeModal()
+    }
+  }
   return (
     <Dialog
       open={isOpen}
@@ -27,6 +42,7 @@ const BecomeSellerModal = ({ closeModal, isOpen }) => {
             <hr className='mt-8 ' />
             <div className='flex mt-2 justify-around'>
               <button
+                onClick={handleRequest}
                 type='button'
                 className='cursor-pointer inline-flex justify-center rounded-md border border-transparent bg-green-100 px-4 py-2 text-sm font-medium text-green-900 hover:bg-green-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2'
               >
